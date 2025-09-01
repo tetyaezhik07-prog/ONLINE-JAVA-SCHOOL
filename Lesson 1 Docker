@@ -1,0 +1,217 @@
+Урок 1 — «Введение в Docker для Java»
+Тест:
+1. Что такое Docker image?
+
+  - A) Контейнер
+
+  - B) Шаблон для создания контейнера
+
+  - C) Команда для запуска контейнера
+
+  - Правильный ответ: B
+
+  - Объяснение: Docker image — это шаблон, который используется для создания контейнеров.
+
+2. Какой параметр используется для проброса порта в команду `docker run`?
+
+  - A) -v
+
+  - B) -d
+
+  - C) -p
+
+  - Правильный ответ: C
+
+  - Объяснение: Параметр `-p` используется для проброса портов контейнера на хостовую машину.
+
+3. Какой файл используется для игнорирования файлов в Docker?
+
+  - A) .dockerignore
+
+  - B) .gitignore
+
+  - C) .dockerfile
+
+  - Правильный ответ: A
+
+  - Объяснение: `.dockerignore` используется для исключения файлов и директорий из контекста сборки Docker.
+===========================================================================================================================
+
+Эталонное решение для практической части задания.
+
+Эталонное решение для Docker Spring Boot приложения
+1. Структура проекта
+
+Проект будет включать в себя следующие файлы:
+
+spring-boot-docker-demo/
+├── Dockerfile
+├── .dockerignore
+├── pom.xml
+└── src/
+    └── main/
+        └── java/
+            └── com/
+                └── example/
+                    └── demo/
+                        └── DemoApplication.java
+
+2. Dockerfile
+
+Это основной файл для создания Docker-образа. Мы будем использовать multi-stage сборку для минимизации размера итогового образа.
+
+# Stage 1: Build the application using Maven
+FROM maven:3.8.1-jdk-11-slim AS build
+
+WORKDIR /app
+COPY pom.xml .
+RUN mvn dependency:go-offline
+
+COPY src /app/src
+RUN mvn clean package -DskipTests
+
+# Stage 2: Create the final image using OpenJDK
+FROM openjdk:11-jre-slim
+
+WORKDIR /app
+COPY --from=build /app/target/demo-0.0.1-SNAPSHOT.jar /app/demo.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "/app/demo.jar"]
+
+
+Пояснение:
+
+На первом этапе мы используем официальный Maven-образ для сборки приложения.
+
+На втором этапе создаём легковесный образ на основе OpenJDK 11, в который копируем собранный .jar файл.
+
+Мы пробрасываем порт 8080 и задаём команду для запуска приложения.
+
+3. .dockerignore
+
+Файл .dockerignore нужен для исключения ненужных файлов из контекста сборки Docker. Пример:
+
+target/
+*.log
+
+
+Этот файл исключит каталог target/, в котором Maven будет собирать артефакты, а также все файлы с расширением .log.
+
+4. Spring Boot приложение
+
+Для простоты создадим минимальное приложение Spring Boot.
+
+DemoApplication.java:
+
+package com.example.demo;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class DemoApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(DemoApplication.class, args);
+    }
+}
+
+
+Это стандартное приложение Spring Boot с одним классом, который запускает приложение.
+
+pom.xml:
+Это Maven файл для управления зависимостями. Пример:
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>demo</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <name>demo</name>
+    <description>Demo project for Spring Boot</description>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.5.4</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version>
+                <configuration>
+                    <source>11</source>
+                    <target>11</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+
+
+Это минимальная конфигурация для Spring Boot приложения с Web-стартовым пакетом.
+
+5. Как запустить проект
+
+Создайте репозиторий на GitHub и клонируйте его.
+
+Склонируйте репозиторий на свою машину.
+
+Добавьте файлы проекта, которые я описал выше, в репозиторий.
+
+В каталоге проекта выполните команду сборки Docker-образа:
+
+docker build -t spring-boot-docker-demo .
+
+
+После успешной сборки, запустите контейнер:
+
+docker run -d -p 8080:8080 spring-boot-docker-demo
+
+
+Перейдите в браузер и откройте http://localhost:8080. Вы должны увидеть страницу приветствия от Spring Boot приложения.
+
+6. Критерии приемки
+
+Контейнер успешно запускается и приложение доступно по порту 8080.
+
+Приложение работает корректно и выводит стандартную страницу приветствия Spring Boot.
+
+7. Проверка результата
+
+Для проверки работы контейнера используйте команду:
+
+docker ps
+
+
+Она покажет, что контейнер работает и использует порт 8080.
+
+Для проверки работы приложения откройте в браузере:
+
+http://localhost:8080
+
+
+Ожидаемый результат — стандартная страница Spring Boot с сообщением, что приложение работает.
